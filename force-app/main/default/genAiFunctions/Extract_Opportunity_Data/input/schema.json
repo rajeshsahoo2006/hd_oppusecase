@@ -1,0 +1,35 @@
+{
+  "required" : [ "accountName", "amount" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "accountName" : {
+      "title" : "Account Name",
+      "description" : "Name of the account or company",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "amount" : {
+      "title" : "Opportunity Amount",
+      "description" : "Dollar amount for the opportunity",
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "closeDate" : {
+      "title" : "Close Date",
+      "description" : "Expected close date",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "stage" : {
+      "title" : "Stage",
+      "description" : "Opportunity stage (defaults to Qualification)",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
