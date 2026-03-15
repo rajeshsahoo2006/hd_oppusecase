@@ -1,0 +1,5 @@
+{
+  "title" : "Opportunity Data",
+  "description" : "Extracted opportunity information for display",
+  "lightning:type" : "@apexClassType/c__OpportunityData"
+}

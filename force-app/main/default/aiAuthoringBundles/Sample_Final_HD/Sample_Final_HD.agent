@@ -1,0 +1,193 @@
+config:
+  developer_name: "Sample_Final_HD"
+  agent_description: "Extracts opportunity data, searches for accounts, and displays in Lightning card"
+  agent_type: "AgentforceEmployeeAgent"
+
+system:
+  instructions: "Extract opportunity details from meeting summaries, search for matching accounts, and display in a visual card."
+  messages:
+    welcome: |
+      Hello! I can help you extract opportunity details from meeting summaries.
+
+      Just paste your meeting summary, and I'll:
+      • Extract Account Name, Amount, Stage, and Close Date
+      • Search for matching accounts in Salesforce
+      • Display all matching accounts for you to review
+      • Show the complete opportunity card
+    error: "Something went wrong. Please try again."
+
+language:
+  default_locale: "en_US"
+
+variables:
+  account_name: mutable string = ""
+  account_id: mutable string = ""
+  opportunity_amount: mutable number = 0
+  stage: mutable string = "Qualification"
+  close_date: mutable string = ""
+
+knowledge:
+  citations_enabled: False
+
+
+start_agent extract_opportunity:
+    description: "Extract opportunity data, search accounts, and display in card"
+
+    reasoning:
+        instructions: |
+            Follow these steps in order:
+
+            1. Extract data from the user's meeting summary (Account Name, Amount, Close Date, Stage)
+            2. Search for matching accounts in Salesforce and show results
+            3. After finding accounts, capture the Account ID from the first search result
+            4. Display the extracted opportunity information with formatted labels including the Account ID
+            5. The card has Approve and Discard buttons that the user can click
+            6. CRITICAL: Listen for these user inputs:
+               - If user says "Create opportunity:" followed by details, this means they clicked the Approve button
+               - If user says "Discard opportunity for" followed by account name, this means they clicked the Discard button
+               - If user types "yes", "create it", "approve", or similar, they want to create the opportunity
+            7. When user approves (either by button or typing), immediately invoke the CreateOpportunity action with the saved data
+            8. When user discards, acknowledge and say "Opportunity discarded. Would you like to search for a different account?"
+            9. After successfully creating the opportunity, confirm with the opportunity ID
+
+        actions:
+            extract_data: @utils.setVariables
+                description: "Extract and store opportunity data from the conversation"
+                with account_name = ...
+                with opportunity_amount = ...
+                with stage = ...
+                with close_date = ...
+
+            search_accounts: @actions.SearchAccounts
+                description: "Search for accounts matching the extracted name"
+                available when @variables.account_name != ""
+                with accountName = @variables.account_name
+
+            capture_account_id: @utils.setVariables
+                description: "Capture the Account ID from search results"
+                with account_id = ...
+
+            display_card: @actions.Extract_Opportunity_Data
+                description: "Display extracted opportunity data in a Lightning card"
+                with accountName = @variables.account_name
+                with accountId = @variables.account_id
+                with amount = @variables.opportunity_amount
+                with stage = @variables.stage
+                with closeDate = @variables.close_date
+
+            create_opportunity: @actions.CreateOpportunity
+                description: "Create an Opportunity record in Salesforce when user confirms"
+                available when @variables.account_name != ""
+                with accountName = @variables.account_name
+                with amount = @variables.opportunity_amount
+                with stage = @variables.stage
+                with closeDate = @variables.close_date
+
+            create_from_button: @actions.CreateOpportunity
+                description: "Create opportunity from button click with context data"
+                with accountName = ...
+                with amount = ...
+                with stage = ...
+                with closeDate = ...
+
+            Extract_Opportunity_Data: @actions.Extract_Opportunity_Data
+                with accountName = ...
+                with amount = ...
+                with closeDate = ...
+                with stage = ...
+
+
+
+    actions:
+        SearchAccounts:
+          description: "Search for accounts by name"
+          target: "flow://Search_Accounts_by_Name"
+          require_user_confirmation: False
+          include_in_progress_indicator: True
+          progress_indicator_message: "Searching for accounts..."
+          inputs:
+            accountName: string
+              description: "Account name to search for"
+              is_required: True
+              complex_data_type_name: "lightning__textType"
+          outputs:
+            searchResults: list[object]
+              description: "List of matching accounts"
+              is_displayable: True
+              filter_from_agent: True
+              complex_data_type_name: "lightning__recordInfoType"
+        CreateOpportunity:
+          description: "Creates an Opportunity record in Salesforce"
+          target: "apex://CreateOpportunity"
+          require_user_confirmation: True
+          include_in_progress_indicator: True
+          progress_indicator_message: "Creating opportunity..."
+          inputs:
+            accountName: string
+              description: "Name of the account for the opportunity"
+              is_required: True
+              complex_data_type_name: "lightning__textType"
+            amount: number
+              description: "Opportunity amount in dollars"
+              is_required: True
+              complex_data_type_name: "lightning__numberType"
+            stage: string
+              description: "Opportunity stage"
+              is_required: False
+              complex_data_type_name: "lightning__textType"
+            closeDate: string
+              description: "Expected close date"
+              is_required: False
+              complex_data_type_name: "lightning__textType"
+          outputs:
+            success: boolean
+              description: "Whether the opportunity was created successfully"
+              is_displayable: True
+              filter_from_agent: True
+            opportunityId: string
+              description: "ID of the created opportunity"
+              is_displayable: True
+              filter_from_agent: True
+            message: string
+              description: "Success or error message"
+              is_displayable: True
+              filter_from_agent: True
+        Extract_Opportunity_Data:
+            description: "Extracts opportunity information and returns it for display"
+            label: "Extract Opportunity Data"
+            require_user_confirmation: False
+            include_in_progress_indicator: False
+            progress_indicator_message: "Extracting"
+            source: "Extract_Opportunity_Data"
+            target: "apex://ExtractOpportunityData"
+                        
+            inputs:
+                "accountName": string
+                    description: "Name of the account or company"
+                    label: "Account Name"
+                    is_required: True
+                    is_user_input: False
+                "amount": number
+                    description: "Dollar amount for the opportunity"
+                    label: "Opportunity Amount"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__numberType"
+                "closeDate": string
+                    description: "Expected close date"
+                    label: "Close Date"
+                    is_required: False
+                    is_user_input: False
+                "stage": string
+                    description: "Opportunity stage (defaults to Qualification)"
+                    label: "Stage"
+                    is_required: False
+                    is_user_input: False
+                        
+            outputs:
+                "opportunityData": object
+                    description: "Extracted opportunity information"
+                    label: "Opportunity Data"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "c__opportunityData"

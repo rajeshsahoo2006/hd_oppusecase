@@ -1,0 +1,230 @@
+<template>
+    <div class="opportunity-card-wrapper">
+        <!-- Show discarded message -->
+        <template if:true={isDiscarded}>
+            <div class="slds-card discard-card">
+                <div class="card-header discard-header">
+                    <lightning-icon icon-name="utility:ban" size="x-small" class="header-icon"></lightning-icon>
+                    <span class="header-title">OPPORTUNITY DISCARDED</span>
+                </div>
+                <div class="card-body">
+                    <div class="discard-message">
+                        <p class="discard-text">You discarded the opportunity for <strong>{accountName}</strong></p>
+                        <p class="discard-subtext">If you want to reconsider, you can recreate the opportunity record.</p>
+                    </div>
+                    <div class="action-buttons">
+                        <lightning-button
+                            variant="brand"
+                            label="Reconsider"
+                            icon-name="utility:refresh"
+                            onclick={handleReconsider}
+                            class="reconsider-button">
+                        </lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Show normal flow if not discarded -->
+        <template if:false={isDiscarded}>
+            <template if:true={hasData}>
+                <!-- Show form if not created yet -->
+                <template if:false={isCreated}>
+                    <div class="slds-card opportunity-card">
+                        <!-- Header -->
+                        <div class="card-header">
+                            <lightning-icon icon-name="custom:custom18" size="x-small" class="header-icon"></lightning-icon>
+                            <span class="header-title">NEW OPPORTUNITY</span>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="card-body">
+                    <!-- Opportunity Name -->
+                    <div class="field-section">
+                        <label class="field-label">OPPORTUNITY NAME</label>
+                        <lightning-input
+                            value={editableOpportunityName}
+                            onchange={handleOpportunityNameChange}
+                            variant="label-hidden"
+                            class="input-field">
+                        </lightning-input>
+                    </div>
+
+                    <!-- Account Info Section -->
+                    <div class="account-info-section">
+                        <div class="account-name-row">
+                            <template if:true={hasAccountId}>
+                                <span class="account-name-link" onclick={handleAccountClick}>
+                                    {accountName}
+                                </span>
+                            </template>
+                            <template if:false={hasAccountId}>
+                                <span class="account-name-text">
+                                    {accountName}
+                                </span>
+                            </template>
+                        </div>
+                        <template if:true={accountPhone}>
+                            <div class="account-detail-row">
+                                <lightning-icon icon-name="utility:phone" size="xx-small"></lightning-icon>
+                                <span class="account-detail-text">{accountPhone}</span>
+                            </div>
+                        </template>
+                        <template if:true={accountAddress}>
+                            <div class="account-detail-row">
+                                <lightning-icon icon-name="utility:location" size="xx-small"></lightning-icon>
+                                <span class="account-detail-text">{accountAddress}</span>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Amount and Stage Row -->
+                    <div class="dual-field-row">
+                        <div class="field-section half-width">
+                            <label class="field-label">AMOUNT</label>
+                            <lightning-input
+                                type="number"
+                                value={editableAmount}
+                                onchange={handleAmountChange}
+                                variant="label-hidden"
+                                formatter="currency"
+                                class="input-field">
+                            </lightning-input>
+                        </div>
+                        <div class="field-section half-width">
+                            <label class="field-label">STAGE</label>
+                            <lightning-combobox
+                                value={editableStage}
+                                options={stageOptions}
+                                onchange={handleStageChange}
+                                variant="label-hidden"
+                                class="input-field">
+                            </lightning-combobox>
+                        </div>
+                    </div>
+
+                    <!-- Close Date -->
+                    <div class="field-section">
+                        <label class="field-label">CLOSE DATE</label>
+                        <lightning-input
+                            type="date"
+                            value={editableCloseDate}
+                            onchange={handleCloseDateChange}
+                            variant="label-hidden"
+                            class="input-field">
+                        </lightning-input>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <lightning-button
+                            variant="brand"
+                            label={approveButtonLabel}
+                            icon-name="utility:check"
+                            onclick={handleApprove}
+                            disabled={isApproving}
+                            class="approve-button">
+                        </lightning-button>
+                        <lightning-button
+                            variant="destructive-text"
+                            label="Discard"
+                            icon-name="utility:close"
+                            onclick={handleDiscard}
+                            disabled={isApproving}
+                            class="discard-button">
+                        </lightning-button>
+                    </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Show success card after creation -->
+                <template if:true={isCreated}>
+                    <div class="slds-card success-card">
+                        <!-- Header -->
+                        <div class="card-header success-header">
+                            <lightning-icon icon-name="utility:success" size="x-small" class="header-icon"></lightning-icon>
+                            <span class="header-title">OPPORTUNITY CREATED</span>
+                        </div>
+
+                        <!-- Success Body -->
+                        <div class="card-body">
+                            <div class="success-message">
+                                <lightning-icon icon-name="utility:check" size="medium" class="success-icon"></lightning-icon>
+                                <p class="success-text">Successfully created opportunity</p>
+                            </div>
+
+                            <div class="field-section">
+                                <label class="field-label">OPPORTUNITY NAME</label>
+                                <p class="field-value">{createdOpportunityName}</p>
+                            </div>
+
+                            <div class="field-section">
+                                <label class="field-label">OPPORTUNITY ID</label>
+                                <p class="field-value">{createdOpportunityId}</p>
+                            </div>
+
+                            <div class="field-section">
+                                <label class="field-label">ACCOUNT</label>
+                                <p class="field-value">{accountName}</p>
+                            </div>
+
+                            <div class="dual-field-row">
+                                <div class="field-section half-width">
+                                    <label class="field-label">AMOUNT</label>
+                                    <p class="field-value">${editableAmount}</p>
+                                </div>
+                                <div class="field-section half-width">
+                                    <label class="field-label">STAGE</label>
+                                    <p class="field-value">{editableStage}</p>
+                                </div>
+                            </div>
+
+                            <!-- Event Creation Prompt -->
+                            <template if:true={showEventPrompt}>
+                                <div class="event-prompt">
+                                    <p class="event-prompt-text">Would you like to create a follow-up event?</p>
+                                    <div class="event-buttons">
+                                        <lightning-button
+                                            variant="brand"
+                                            label="Create Event"
+                                            icon-name="utility:event"
+                                            onclick={handleCreateEvent}
+                                            disabled={isCreatingEvent}
+                                            class="create-event-button">
+                                        </lightning-button>
+                                        <lightning-button
+                                            variant="neutral"
+                                            label="Skip"
+                                            onclick={handleSkipEvent}
+                                            disabled={isCreatingEvent}
+                                            class="skip-button">
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- View Button -->
+                            <div class="action-buttons">
+                                <lightning-button
+                                    variant="brand"
+                                    label="View Opportunity"
+                                    icon-name="utility:open"
+                                    onclick={handleViewOpportunity}
+                                    class="view-button">
+                                </lightning-button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </template>
+
+            <template if:false={hasData}>
+                <div class="slds-notify slds-notify_alert slds-theme_warning" role="alert">
+                    <span class="slds-assistive-text">Warning</span>
+                    <h2>No opportunity data available to display.</h2>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>
